@@ -1,0 +1,12 @@
+/backend/target/
+/frontend/node_modules/
+/frontend/dist/
+/.env
+/backend/storage/
+/*.log
+.idea/
+.vscode/
+/.maven-cache/
+/maven-settings.local.xml
+
+/frontend/.pnpm-store/
