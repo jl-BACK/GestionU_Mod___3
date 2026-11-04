@@ -1,0 +1,79 @@
+server:
+  port: 8080
+  forward-headers-strategy: framework
+spring:
+  application:
+    name: gestion-unimag-m3
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/gestion_unimag?useUnicode=true&characterEncoding=utf8&serverTimezone=America/Bogota}
+    username: ${SPRING_DATASOURCE_USERNAME:unimag}
+    password: ${SPRING_DATASOURCE_PASSWORD:change-this-password}
+    hikari:
+      maximum-pool-size: 15
+      minimum-idle: 2
+      connection-timeout: 3000
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: America/Bogota
+        format_sql: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  jackson:
+    time-zone: America/Bogota
+    default-property-inclusion: non_null
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: gestion-unimag-m3
+      enable-auto-commit: false
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    listener:
+      ack-mode: record
+    producer:
+      acks: all
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        enable.idempotence: true
+        delivery.timeout.ms: 120000
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 7MB
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+app:
+  timezone: America/Bogota
+  demo-seed: ${M3_DEMO_SEED:true}
+  upload-dir: ${M3_UPLOAD_DIR:./storage}
+  kafka:
+    m2-record-topic: module2.reservation.record.v1
+    m2-cancellation-topic: module2.reservation.cancellation.v1
+    m2-no-show-ack-topic: module2.reservation.no-show-ack.v1
+    m2-checkout-ack-topic: module2.reservation.check-out-ack.v1
+    m1-state-topic: unimag.m1.recursos-estados.v1
+  outbox:
+    batch-size: 50
+    fixed-delay-ms: 700
+logging:
+  level:
+    root: INFO
+    com.university.sanctions: INFO
