@@ -36,14 +36,14 @@ El sistema implementa los **6 casos de uso** estipulados en los planes técnicos
               │ JDBC                          │ Kafka Protocol
               ▼                               ▼
      ┌─────────────────┐             ┌─────────────────┐
-     │ MySQL 8.4 (DB)  │             │   Apache Kafka  │
-     │  (Data + Outbox)│             │ (M1 & M2 Events)│
+     │ Supabase        │             │   Apache Kafka  │
+     │ PostgreSQL      │             │ (M1 & M2 Events)│
      └─────────────────┘             └─────────────────┘
 ```
 
 ### 1. Backend (Spring Boot 4 / Java 21)
 * **Arquitectura Hexagonal / Por Capas**: Separación estricta entre presentación, servicios de dominio, persistencia e integración.
-* **Patrón Transaccional Outbox (`outbox_message`)**: Asegura atomicidad; los eventos de dominio se guardan en MySQL dentro de la misma transacción de negocio y un worker los publica a Kafka con reintentos y tolerancia a fallos.
+* **Patrón Transaccional Outbox (`outbox_message`)**: Asegura atomicidad; los eventos de dominio se guardan en PostgreSQL dentro de la misma transacción de negocio y un worker los publica a Kafka con reintentos y tolerancia a fallos.
 * **Patrón Inbox (`processed_event`)**: Deduplica mensajes entrantes por `eventId` para garantizar procesamiento idempotente.
 * **Seguridad JWT Stateless**: Cadenas de filtros separadas para usuarios del portal (`ESTUDIANTE`, `PERSONAL_ADMINISTRATIVO`) y endpoints intermodulares sin autenticación directa según contratos de M1/M2.
 
@@ -67,7 +67,7 @@ El sistema implementa los **6 casos de uso** estipulados en los planes técnicos
 |---|---|
 | **Frontend** | React 19.3, Vite 8.3, Vanilla CSS Moderno, Context API / Hooks |
 | **Backend** | Java 21 (LTS), Spring Boot 4.1.2, Spring MVC, Spring Data JPA, Spring Security, Spring Kafka |
-| **Base de Datos** | MySQL 8.4, Migraciones automatizadas con Flyway |
+| **Base de Datos** | Supabase PostgreSQL, migraciones automatizadas con Flyway |
 | **Mensajería** | Apache Kafka 4.3.1 (Modo KRaft) |
 | **Infraestructura** | Docker & Docker Compose |
 | **Documentación** | OpenAPI 3.0 / Swagger UI |
@@ -76,13 +76,15 @@ El sistema implementa los **6 casos de uso** estipulados en los planes técnicos
 
 ## 🚀 Despliegue Rápido con Docker Compose
 
-Toda la solución (Backend, Frontend, Base de Datos y Broker de Mensajería) se despliega con un solo comando.
+El frontend, backend y broker de mensajería se levantan con Docker Compose; la base de datos PostgreSQL es el proyecto Supabase remoto.
 
 ### 1. Clonar y Configurar Entorno
 ```bash
 cp .env.example .env
 ```
-*(Puedes revisar y personalizar las contraseñas, secreto JWT y puertos en el archivo `.env`).*
+Completa `SPRING_DATASOURCE_PASSWORD` con la contraseña de la base de datos Supabase. Si tu proyecto usa otro host, actualiza `SPRING_DATASOURCE_URL`. No publiques `.env` ni uses las credenciales de ejemplo en producción. Si la contraseña contiene caracteres especiales, escríbela entre comillas simples.
+
+El backend también requiere un broker Kafka. Docker Compose inicia uno local; para desplegar el backend fuera de Compose, configura `SPRING_KAFKA_BOOTSTRAP_SERVERS` con un broker accesible desde el servicio.
 
 ### 2. Arrancar Todos los Servicios
 ```bash
@@ -93,6 +95,13 @@ docker compose up --build -d
 ```bash
 docker compose ps
 ```
+
+### 4. Ejecutar smoke tests de solo lectura
+Con los servicios arriba, desde la raíz del repositorio:
+```bash
+python backend/test/smoke_test.py
+```
+El runner lee las credenciales de demo desde `.env` y comprueba disponibilidad, login, permisos y endpoints GET. No ejecuta operaciones que creen o modifiquen datos.
 
 ---
 
@@ -107,18 +116,18 @@ Una vez los contenedores estén levantados:
 | **Documentación Swagger** | [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html) | Interfaz interactiva de prueba de endpoints |
 | **Especificación OpenAPI** | [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs) | Esquema técnico en formato JSON |
 | **Apache Kafka** | `localhost:9092` (Host) / `kafka:19092` (Docker) | Broker de eventos intermodular |
-| **MySQL** | `localhost:3306` | Base de datos relacional del módulo |
+| **Supabase PostgreSQL** | `aws-0-us-east-1.pooler.supabase.com:5432` | Base de datos remota del módulo |
 
 ---
 
 ## 👥 Cuentas de Demostración (Seed de Desarrollo)
 
-Si `M3_DEMO_SEED=true` está activo en el `.env`, el sistema precarga usuarios de prueba listos para iniciar sesión en [http://localhost:5173](http://localhost:5173):
+Las credenciales de demostración se configuran en `.env` y se validan en el login (no son usuarios de Supabase Auth). `M3_DEMO_SEED=true` además inicializa el score del estudiante demo:
 
-| Rol | Código Institucional | Contraseña | Vistas y Permisos |
+| Rol | Código institucional | Contraseña (`.env`) | Vistas y permisos |
 |---|---|---|---|
-| **Estudiante** | `202610001` | `Estudiante123!` | Ver score, historial de cumplimiento, reportar daños con foto. |
-| **Administrativo** | `admin` | `Admin123!` | Tablero general, confirmar inasistencias, cobrar/anular daños, desbloquear usuarios, exportar CSV. |
+| **Estudiante** | `M3_DEMO_STUDENT_CODE` (`202610001`) | `M3_DEMO_STUDENT_PASSWORD` (`student123`) | Ver score, historial de cumplimiento, reportar daños con foto. |
+| **Administrativo** | `M3_DEMO_ADMIN_CODE` (`admin`) | `M3_DEMO_ADMIN_PASSWORD` (`admin123`) | Tablero general, confirmar inasistencias, cobrar/anular daños, desbloquear usuarios, exportar CSV. |
 
 ---
 

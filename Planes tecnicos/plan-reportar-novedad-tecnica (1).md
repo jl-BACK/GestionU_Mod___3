@@ -12,16 +12,16 @@ Este plan implementa el registro de un daño sobre un recurso o espacio (durante
 
 **Language/Version**: Java 21 (LTS), Spring Boot (versión con soporte vigente al iniciar el desarrollo)
 **Primary Dependencies**: Spring Web, Spring Data JPA, Spring Validation, Spring Security (JWT), Spring for Apache Kafka, Flyway (migraciones)
-**Storage**: MySQL 8
-**Testing**: JUnit 5 + Mockito + Spring Boot Test; Testcontainers (MySQL y Kafka)
-**Target Platform**: Linux server, contenedores Docker (backend, frontend, MySQL, Kafka)
+**Storage**: PostgreSQL (Supabase)
+**Testing**: JUnit 5 + Mockito + Spring Boot Test; Testcontainers (PostgreSQL y Kafka)
+**Target Platform**: Linux server, contenedores Docker (backend, frontend y Kafka; PostgreSQL en Supabase)
 **Project Type**: Web application (backend + frontend separados)
 **Frontend Framework**: React + Vite (confirmado)
 **Message Broker**: Apache Kafka (confirmado)
 **Performance Goals**: registrar el reporte en menos de 2 s (SC-005); responder a M1 la consulta de novedades pendientes en menos de 2 s (SC-006)
 **Constraints**:
 - Máximo un reporte de daño por utilización (SC-002); la descripción es obligatoria (SC-004).
-- No hay transacción que abarque MySQL y M1: el reporte y su evento en el outbox se guardan juntos; M1 aplica el estado por su lado.
+- No hay transacción que abarque PostgreSQL y M1: el reporte y su evento en el outbox se guardan juntos; M1 aplica el estado por su lado.
 - Un daño no se informa a M2: va solo de M3 a M1.
 - Los cobros "Pagado" y "Anulado" no se pueden modificar; todo cambio de estado queda en la auditoría (SC-008).
 - La consulta de M1 responde aunque Kafka esté caído; las llamadas entre módulos van sin autenticación, en una cadena de seguridad aparte del JWT.
@@ -71,7 +71,7 @@ backend/src/main/java/com/university/sanctions/
 frontend/src/pages/ DamageReportPage.jsx, ChargesPage.jsx
 ```
 
-**Layered Architecture:** `presentation` recibe solicitudes; `business` coordina el caso de uso; `domain` contiene reglas, modelos y contratos de repositorio; `infrastructure` los implementa con MySQL/JPA y Kafka. Flujo: `presentation → business → domain`, e `infrastructure` implementa los contratos de `domain` y `business`. Los casos de uso se encadenan por eventos de dominio internos, nunca llamando al servicio de otro caso de uso. El detalle completo de capas y carpetas está en `plan-indice.md`.
+**Layered Architecture:** `presentation` recibe solicitudes; `business` coordina el caso de uso; `domain` contiene reglas, modelos y contratos de repositorio; `infrastructure` los implementa con PostgreSQL/JPA y Kafka. Flujo: `presentation → business → domain`, e `infrastructure` implementa los contratos de `domain` y `business`. Los casos de uso se encadenan por eventos de dominio internos, nunca llamando al servicio de otro caso de uso. El detalle completo de capas y carpetas está en `plan-indice.md`.
 
 ## Phase 1: Setup
 

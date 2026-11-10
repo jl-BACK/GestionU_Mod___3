@@ -10,3 +10,5 @@
 /maven-settings.local.xml
 
 /frontend/.pnpm-store/
+__pycache__/
+*.py[cod]

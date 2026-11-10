@@ -1,22 +1,6 @@
-services:
-  mysql:
-    image: mysql:8.4.11
-    environment:
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-gestion_unimag}
-      MYSQL_USER: ${MYSQL_USER:-unimag}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-change-this-password}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change-this-root-password}
-      TZ: America/Bogota
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost --silent"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
+name: gestionu-mod-3
 
+services:
   kafka:
     image: apache/kafka:4.3.1
     hostname: kafka
@@ -42,9 +26,10 @@ services:
     build: ./backend
     env_file: .env
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-gestion_unimag}?useUnicode=true&characterEncoding=utf8&serverTimezone=America/Bogota
-      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-unimag}
-      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-change-this-password}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:?Set SPRING_DATASOURCE_URL in .env}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:?Set SPRING_DATASOURCE_USERNAME in .env}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:?Set SPRING_DATASOURCE_PASSWORD in .env}
+      SPRING_FLYWAY_LOCATIONS: ${SPRING_FLYWAY_LOCATIONS:-classpath:db/migration/postgresql}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:19092
       M3_UPLOAD_DIR: /app/storage
       TZ: America/Bogota
@@ -53,8 +38,6 @@ services:
     volumes:
       - evidence_data:/app/storage
     depends_on:
-      mysql:
-        condition: service_healthy
       kafka:
         condition: service_started
 
@@ -68,5 +51,4 @@ services:
       - backend
 
 volumes:
-  mysql_data:
   evidence_data:
