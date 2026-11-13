@@ -139,8 +139,9 @@ public class CheckOutService {
         reservations.save(reservation);
 
         // Tratamiento de daño o bonificación de score
+        DamageReport report = null;
         if (hasDamage) {
-            DamageReport report = new DamageReport();
+            report = new DamageReport();
             report.setUsageId(usage.getId());
             report.setReservationId(reservationId);
             report.setStudentCode(student);
@@ -170,20 +171,40 @@ public class CheckOutService {
         }
 
         // Publicación de eventos hacia M1
-        Map<String, Object> m1Payload = new LinkedHashMap<>();
-        m1Payload.put("reservationId", reservationId);
-        m1Payload.put("resourceId", reservation.getResourceId());
-        m1Payload.put("occurredAt", now.toString());
-        m1Payload.put("studentCode", student);
-        m1Payload.put("hasDamage", hasDamage);
-        if (hasDamage) {
-            m1Payload.put("description", description.trim());
+        String resourceCategory = reservation.getResourceCategory() != null ? reservation.getResourceCategory().toUpperCase() : "ACTIVO";
+        String validResourceId = reservation.getResourceId();
+        try {
+            java.util.UUID.fromString(validResourceId);
+        } catch (Exception ex) {
+            validResourceId = java.util.UUID.nameUUIDFromBytes(validResourceId.getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
         }
 
         if (hasDamage) {
-            usagePublisher.damageReported(reservation.getResourceId(), m1Payload);
+            Map<String, Object> m1Payload = new LinkedHashMap<>();
+            m1Payload.put("resourceId", validResourceId);
+            m1Payload.put("resourceCategory", resourceCategory);
+            m1Payload.put("recourseCategory", resourceCategory);
+            m1Payload.put("id_reservation_m2", reservationId);
+            m1Payload.put("id_novedad_m3", report != null && report.getId() != null ? String.valueOf(report.getId()) : java.util.UUID.randomUUID().toString());
+            m1Payload.put("student", Map.of(
+                "student_code", student,
+                "mail", student + "@unimagdalena.edu.co"
+            ));
+            m1Payload.put("description", description.trim());
+            m1Payload.put("physical_state", "DAÑADO");
+            m1Payload.put("reservationId", reservationId);
+            usagePublisher.damageReported(validResourceId, m1Payload);
         } else {
-            usagePublisher.reservationFinalized(reservation.getResourceId(), m1Payload);
+            Map<String, Object> m1Payload = new LinkedHashMap<>();
+            m1Payload.put("resourceId", validResourceId);
+            m1Payload.put("resourceCategory", resourceCategory);
+            m1Payload.put("id_reservation_m2", reservationId);
+            m1Payload.put("id_checkout_m3", java.util.UUID.randomUUID().toString());
+            m1Payload.put("realcheckoutdate", now.toString());
+            m1Payload.put("physical_state", "OPTIMO");
+            m1Payload.put("reservationId", reservationId);
+            m1Payload.put("occurredAt", now.toString());
+            usagePublisher.reservationFinalized(validResourceId, m1Payload);
         }
 
         // Publicación de eventos hacia M2

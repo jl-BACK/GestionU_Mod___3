@@ -36,12 +36,22 @@ public class OutboxService {
 
     public String enqueueM1(String type, String resourceId, Map<String, Object> data) {
         String correlation = UUID.randomUUID().toString();
+        String eventId = UUID.randomUUID().toString();
         Map<String, String> headers = Map.of(
             "X-Correlation-Id", correlation,
             "X-Event-Type", type,
-            "X-Source-Module", "M3",
-            "X-Event-Version", "1");
-        return save(M1_TOPIC, type, resourceId, data, headers);
+            "X-Source-Module", "MODULO_3",
+            "X-Event-Version", "1.0");
+
+        Map<String, Object> envelope = new LinkedHashMap<>();
+        envelope.put("eventId", eventId);
+        envelope.put("type", type);
+        envelope.put("version", "1.0");
+        envelope.put("timestamp", clock.instant().toString());
+        envelope.put("source", "MODULO_3");
+        envelope.put("data", data);
+
+        return save(M1_TOPIC, type, resourceId, envelope, headers);
     }
 
     private String save(String topic, String type, String key, Object payload, Map<String, String> headers) {

@@ -48,11 +48,32 @@ public class DamageReportService {
         report.setReportedAt(clock.instant()); report.setIssueStatus("PENDIENTE"); report.setChargeResult("PENDIENTE");
         reports.save(report);
         if (report.getStudentCode() != null) scores.markInfraction(report.getStudentCode());
-        Map<String,Object> data = new LinkedHashMap<>();
-        data.put("resourceId", resourceId); data.put("reservationId", report.getReservationId());
-        data.put("studentCode", report.getStudentCode()); data.put("description", report.getDescription());
+
+        String validResId = resourceId;
+        try {
+            java.util.UUID.fromString(validResId);
+        } catch (Exception ex) {
+            validResId = java.util.UUID.nameUUIDFromBytes(validResId.getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
+        }
+
+        String resCategory = report.getResourceCategory() != null ? report.getResourceCategory().toUpperCase() : "ACTIVO";
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("resourceId", validResId);
+        data.put("resourceCategory", resCategory);
+        data.put("recourseCategory", resCategory);
+        data.put("id_reservation_m2", report.getReservationId() != null ? report.getReservationId() : "");
+        data.put("id_novedad_m3", report.getId() != null ? String.valueOf(report.getId()) : java.util.UUID.randomUUID().toString());
+        data.put("student", Map.of(
+            "student_code", report.getStudentCode() != null ? report.getStudentCode() : "DESCONOCIDO",
+            "mail", (report.getStudentCode() != null ? report.getStudentCode() : "estudiante") + "@unimagdalena.edu.co"
+        ));
+        data.put("description", report.getDescription());
+        data.put("physical_state", "DAÑADO");
+        data.put("reservationId", report.getReservationId());
+        data.put("studentCode", report.getStudentCode());
         data.put("reportedAt", report.getReportedAt().toString());
-        publisher.damageReported(resourceId, data);
+
+        publisher.damageReported(validResId, data);
         return report;
     }
 }

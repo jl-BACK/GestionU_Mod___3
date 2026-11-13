@@ -17,6 +17,6 @@ public class InboundKafkaListeners {
     public void noShowAck(String message) { events.accept("module2.reservation.no-show-ack.v1", message); }
     @KafkaListener(topics="${app.kafka.m2-checkout-ack-topic:module2.reservation.check-out-ack.v1}")
     public void checkoutAck(String message) { events.accept("module2.reservation.check-out-ack.v1", message); }
-    @KafkaListener(topics="${app.kafka.m1-state-topic:unimag.m1.recursos-estados.v1}")
-    public void resourceState(String message) { events.accept("unimag.m1.recursos-estados.v1", message); }
+    @KafkaListener(topics={"${app.kafka.m1-state-topic:unimag.m1.estado-actualizado.v1}", "unimag.m1.recursos-estados.v1"})
+    public void resourceState(String message) { events.accept("unimag.m1.estado-actualizado.v1", message); }
 }

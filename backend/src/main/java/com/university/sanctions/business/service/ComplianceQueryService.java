@@ -52,9 +52,14 @@ public class ComplianceQueryService {
             item.put("scope", "INASISTENCIA".equals(sanction.getType()) ? "ESPACIOS" : "TODO");
             active.add(item);
         }
-        return Map.of("studentCode", code, "activeSanctions", active,
-            "absenceCount", absences.countByStudentCodeAndStatusIn(code, List.of("ACEPTADA")),
-            "lateReturns", checkouts.countByStudentCodeAndResult(code, "CON_RETRASO"), "generatedAt", clock.instant().toString());
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("person", Map.of("code", code));
+        result.put("studentCode", code);
+        result.put("activeSanctions", active);
+        result.put("absenceCount", absences.countByStudentCodeAndStatusIn(code, List.of("ACEPTADA")));
+        result.put("lateReturns", checkouts.countByStudentCodeAndResult(code, "CON_RETRASO"));
+        result.put("generatedAt", clock.instant().toString());
+        return result;
     }
 
     public Map<String,Object> forStudent(String code) {

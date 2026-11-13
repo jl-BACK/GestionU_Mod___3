@@ -103,9 +103,9 @@ Una vez los contenedores estén levantados:
 | Servicio | URL | Descripción |
 |---|---|---|
 | **Frontend (Portal Web)** | [http://localhost:5173](http://localhost:5173) | Interfaz gráfica interactiva para Estudiantes y Administradores |
-| **Backend API** | [http://localhost:8080/api/v1](http://localhost:8080/api/v1) | Endpoints REST del sistema |
-| **Documentación Swagger** | [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html) | Interfaz interactiva de prueba de endpoints |
-| **Especificación OpenAPI** | [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs) | Esquema técnico en formato JSON |
+| **Backend API** | [http://localhost:8083/api/v1](http://localhost:8083/api/v1) | Endpoints REST del sistema (puerto estándar intermodular M3) |
+| **Documentación Swagger** | [http://localhost:8083/swagger-ui/index.html](http://localhost:8083/swagger-ui/index.html) | Interfaz interactiva de prueba de endpoints |
+| **Especificación OpenAPI** | [http://localhost:8083/v3/api-docs](http://localhost:8083/v3/api-docs) | Esquema técnico en formato JSON |
 | **Apache Kafka** | `localhost:9092` (Host) / `kafka:19092` (Docker) | Broker de eventos intermodular |
 | **MySQL** | `localhost:3306` | Base de datos relacional del módulo |
 

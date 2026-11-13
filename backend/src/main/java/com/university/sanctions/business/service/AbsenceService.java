@@ -240,8 +240,8 @@ public class AbsenceService {
         if (accepted) {
             Map<String, Object> payload = new LinkedHashMap<>();
             payload.put("reservationId", row.getReservationId());
-            payload.put("reason", reason);
-            publisher.noShowReported(row.getReservationId(), payload);
+            payload.put("voidedReason", reason);
+            publisher.noShowReportVoided(row.getReservationId(), payload);
         }
 
         return row;
