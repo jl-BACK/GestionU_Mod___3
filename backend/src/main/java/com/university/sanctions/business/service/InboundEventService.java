@@ -107,8 +107,31 @@ public class InboundEventService {
 
     private void saveReservation(JsonNode d, Instant occurredAt) {
         JsonNode r = firstObject(d, "reservation", "reserva", "record");
-        String id = text(r, "reservationId", "reservation_id", "id");
-        String holder = text(r, "holderCode", "holder_code", "studentCode", "student_code", "personCode");
+        String id = or(text(d, "reservationId", "reservation_id", "id"), text(r, "reservationId", "reservation_id", "id"));
+
+        JsonNode holderNode = firstObject(d, "holder", "titular");
+        if (holderNode == d) {
+            holderNode = firstObject(r, "holder", "titular");
+        }
+        String holder = or(
+            text(holderNode, "code", "studentCode", "student_code", "userId"),
+            text(r, "holderCode", "holder_code", "studentCode", "student_code", "personCode")
+        );
+        String holderName = or(
+            text(holderNode, "name", "nombre", "studentName"),
+            text(r, "holderName", "holder_name", "studentName", "personName")
+        );
+
+        JsonNode academicNode = firstObject(d, "academic", "academico");
+        if (academicNode == d) {
+            academicNode = firstObject(r, "academic", "academico");
+        }
+        if (holder == null && academicNode != null && academicNode != d) {
+            holder = or(text(academicNode, "instructor", "course", "program"), "ACADEMICO");
+            if (holderName == null) {
+                holderName = text(academicNode, "course", "program");
+            }
+        }
 
         if (id == null || holder == null) {
             throw new IllegalArgumentException("La reserva debe incluir reservationId y titular.");
@@ -128,22 +151,48 @@ public class InboundEventService {
 
         row.setReservationId(id);
         row.setHolderCode(holder);
-        row.setHolderName(text(r, "holderName", "holder_name", "studentName", "personName"));
+        row.setHolderName(holderName);
         row.setOrigin(orDefault(text(r, "origin", "source"), "ESTUDIANTE"));
         row.setSanctionable(bool(r, true, "sanctionable", "isSanctionable", "is_sanctionable"));
 
         String category = text(r, "resourceCategory", "resource_category", "category");
-        JsonNode resource = firstObject(r, "resource", "recurso");
+        JsonNode resource = firstObject(d, "resource", "recurso");
+        if (resource == d) {
+            resource = firstObject(r, "resource", "recurso");
+        }
         row.setResourceId(or(text(r, "resourceId", "resource_id", "assetId"), text(resource, "id", "resourceId", "resource_id")));
         row.setResourceName(or(text(r, "resourceName", "resource_name"), text(resource, "name", "nombre")));
         row.setResourceCategory(normalizeCategory(or(category, text(resource, "category", "type"))));
         row.setResourceType(or(text(r, "resourceType", "resource_type"), text(resource, "type", "resourceType")));
         row.setResourceLocation(or(text(r, "resourceLocation", "resource_location"), text(resource, "location", "ubicacion")));
-        row.setFaculty(text(r, "faculty", "facultyName", "facultad"));
-        row.setStartsAt(instant(r, "startsAt", "starts_at", "startAt", "start_at", "startDateTime"));
-        row.setEndsAt(instant(r, "endsAt", "ends_at", "endAt", "end_at", "endDateTime"));
-        row.setLoanWithdrawnAt(instant(r, "loanWithdrawnAt", "loan_withdrawn_at", "withdrawnAt", "pickedUpAt"));
-        row.setLoanDueAt(instant(r, "loanDueAt", "loan_due_at", "dueAt", "due_at"));
+        row.setFaculty(or(text(r, "faculty", "facultyName", "facultad"), text(resource, "faculty", "facultad")));
+
+        JsonNode occupancyNode = firstObject(d, "occupancy", "ocupacion", "window", "reservedTime");
+        if (occupancyNode == d) {
+            occupancyNode = firstObject(r, "occupancy", "ocupacion", "window", "reservedTime");
+        }
+        row.setStartsAt(orInstant(
+            instant(occupancyNode, "start", "startsAt", "starts_at"),
+            instant(r, "startsAt", "starts_at", "startAt", "start_at", "startDateTime")
+        ));
+        row.setEndsAt(orInstant(
+            instant(occupancyNode, "end", "endsAt", "ends_at"),
+            instant(r, "endsAt", "ends_at", "endAt", "end_at", "endDateTime")
+        ));
+
+        JsonNode loanNode = firstObject(d, "loan", "prestamo");
+        if (loanNode == d) {
+            loanNode = firstObject(r, "loan", "prestamo");
+        }
+        row.setLoanWithdrawnAt(orInstant(
+            instant(loanNode, "pickup", "withdrawnAt", "loanWithdrawnAt"),
+            instant(r, "loanWithdrawnAt", "loan_withdrawn_at", "withdrawnAt", "pickedUpAt")
+        ));
+        row.setLoanDueAt(orInstant(
+            instant(loanNode, "dueAt", "due_at", "end"),
+            instant(r, "loanDueAt", "loan_due_at", "dueAt", "due_at")
+        ));
+
         row.setStatus(orDefault(text(r, "status"), "ACTIVA"));
         row.setLastEventAt(occurredAt);
 
@@ -162,12 +211,13 @@ public class InboundEventService {
         currentOrder.setStatus(row.getStatus());
         ordering.save(currentOrder);
 
-        students.findById(holder).orElseGet(() ->
-            students.save(new StudentRef(holder, row.getHolderName() == null ? holder : row.getHolderName()))
+        final String finalHolder = holder;
+        students.findById(finalHolder).orElseGet(() ->
+            students.save(new StudentRef(finalHolder, row.getHolderName() == null ? finalHolder : row.getHolderName()))
         );
 
-        scores.findById(holder).orElseGet(() -> {
-            var score = new TrustScore(holder, 50);
+        scores.findById(finalHolder).orElseGet(() -> {
+            var score = new TrustScore(finalHolder, 50);
             score.setLastRecoveryAt(clock.instant());
             return scores.save(score);
         });
@@ -247,7 +297,7 @@ public class InboundEventService {
         absences.acknowledge(
             id,
             result,
-            text(d, "reasonCode", "errorCode", "code", "reason", "rejectReason"),
+            text(d, "rejection", "reasonCode", "errorCode", "code", "reason", "rejectReason", "detail"),
             instant(d, "acceptedFrom", "accepted_from")
         );
     }
@@ -265,7 +315,7 @@ public class InboundEventService {
             return;
         }
 
-        String reason = text(d, "reason", "rejectReason", "code");
+        String reason = text(d, "rejection", "reason", "rejectReason", "code", "detail");
         if (result != null && (result.equalsIgnoreCase("ACEPTADO") || result.equalsIgnoreCase("ACCEPTED"))) {
             row.setAckStatus("ACEPTADO");
             row.setAckReason(null);
@@ -287,7 +337,7 @@ public class InboundEventService {
 
     private void updateMaintenanceState(JsonNode d) {
         String resourceId = text(d, "resourceId", "resource_id", "id");
-        String status = text(d, "status", "state", "newStatus", "new_status");
+        String status = text(d, "newState", "new_state", "status", "state", "newStatus", "new_status");
         if (resourceId == null || status == null) {
             throw new IllegalArgumentException("El evento de M1 requiere recurso y estado.");
         }
@@ -329,6 +379,10 @@ public class InboundEventService {
 
     private static String orDefault(String value, String fallback) {
         return value == null ? fallback : value;
+    }
+
+    private static Instant orInstant(Instant a, Instant b) {
+        return a != null ? a : b;
     }
 
     private static boolean bool(JsonNode n, boolean fallback, String... names) {
