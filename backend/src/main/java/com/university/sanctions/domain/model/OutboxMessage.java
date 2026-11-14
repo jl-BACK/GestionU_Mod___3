@@ -19,10 +19,8 @@ public class OutboxMessage {
     private String eventType;
     @Column(name = "message_key", nullable = false, length = 200)
     private String messageKey;
-    @Lob
-    @Column(nullable = false, columnDefinition = "MEDIUMTEXT")
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String payload;
-    @Lob
     @Column(name = "headers_json", columnDefinition = "TEXT")
     private String headersJson;
     @Column(nullable = false, length = 20)

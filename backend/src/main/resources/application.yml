@@ -5,9 +5,9 @@ spring:
   application:
     name: gestion-unimag-m3
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/gestion_unimag?useUnicode=true&characterEncoding=utf8&serverTimezone=America/Bogota}
-    username: ${SPRING_DATASOURCE_USERNAME:unimag}
-    password: ${SPRING_DATASOURCE_PASSWORD:change-this-password}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://aws-0-us-east-1.pooler.supabase.com:5432/postgres?sslmode=require}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres.hztiliupzompfkebkogb}
+    password: ${SPRING_DATASOURCE_PASSWORD}
     hikari:
       maximum-pool-size: 15
       minimum-idle: 2
@@ -23,7 +23,7 @@ spring:
         format_sql: false
   flyway:
     enabled: true
-    locations: classpath:db/migration
+    locations: ${SPRING_FLYWAY_LOCATIONS:classpath:db/migration/postgresql}
   jackson:
     time-zone: America/Bogota
     default-property-inclusion: non_null
