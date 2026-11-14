@@ -23,7 +23,7 @@ La numeración de las tareas (T001, T002…) **reinicia en cada plan**. Cuando u
 
 | Componente | Tareas en `plan-registrar-checkout` | Lo usan |
 |---|---|---|
-| Proyecto backend/frontend, linting, Docker (MySQL, Kafka), Flyway | T001–T005 | todos |
+| Proyecto backend/frontend, linting, Docker (Kafka), PostgreSQL/Supabase y Flyway | T001–T005 | todos |
 | Parámetros del negocio (`SystemConfiguration`) | T006 | todos |
 | Copia local de reservas de M2 y sus consumidores | T008, T021 | check-out, inasistencia |
 | Score de confianza e historial, `TrustScoreService` | T009, T022 | check-out, inasistencia, desbloqueo, cumplimiento |
@@ -93,11 +93,11 @@ La numeración de las tareas (T001, T002…) **reinicia en cada plan**. Cuando u
 
 ### Garantías de entrega
 
-- **Outbox** (`outbox_message`): el evento se guarda en la misma transacción MySQL del cambio de negocio y un publicador lo envía después, con reintentos y espera creciente. Si la aplicación cae entre guardar y publicar, el evento no se pierde.
+- **Outbox** (`outbox_message`): el evento se guarda en la misma transacción PostgreSQL del cambio de negocio y un publicador lo envía después, con reintentos y espera creciente. Si la aplicación cae entre guardar y publicar, el evento no se pierde.
 - **Inbox** (`processed_event`): cada evento recibido se registra por `eventId` antes de procesarse; una reentrega se descarta. El *offset* se confirma después de guardar.
 - **DLT** (`module3.dlt.<tópico-de-origen>`): eventos mal formados o sobre una reserva desconocida. Un rechazo de negocio de M2 llega como acuse, no al DLT.
 - **Convenciones de cada módulo**: los eventos hacia M2 usan el sobre de M2 (`eventId`, `type`, `version`, `occurredAt`, `data`, clave `reservation_id`); los eventos hacia M1 usan las cabeceras de M1 (`X-Correlation-Id`, `X-Event-Type`, `X-Source-Module`, `X-Event-Version`, clave `recurso_id`).
-- **Daño y estado del recurso**: no existe una transacción que abarque MySQL y M1. M3 guarda el reporte en estado "Pendiente" y el evento en el outbox en la misma transacción; M1 aplica el estado por su lado. M3 nunca asume que el recurso cambió de estado: la novedad pasa a "Resuelta" solo cuando M1 informa por `estado.actualizado` que salió de mantenimiento.
+- **Daño y estado del recurso**: no existe una transacción que abarque PostgreSQL y M1. M3 guarda el reporte en estado "Pendiente" y el evento en el outbox en la misma transacción; M1 aplica el estado por su lado. M3 nunca asume que el recurso cambió de estado: la novedad pasa a "Resuelta" solo cuando M1 informa por `estado.actualizado` que salió de mantenimiento.
 
 ## Estructura completa del backend y frontend
 
@@ -213,7 +213,7 @@ frontend/
 └── tests/
 ```
 
-**Layered Architecture:** separamos el código según la responsabilidad de cada grupo. `presentation` recibe solicitudes; `business` coordina los casos de uso; `domain` contiene las reglas, los conceptos del negocio y los contratos de repositorio; `infrastructure` conecta esas reglas con MySQL/JPA, Kafka y otros detalles técnicos. No significa que cada carpeta sea una aplicación independiente.
+**Layered Architecture:** separamos el código según la responsabilidad de cada grupo. `presentation` recibe solicitudes; `business` coordina los casos de uso; `domain` contiene las reglas, los conceptos del negocio y los contratos de repositorio; `infrastructure` conecta esas reglas con PostgreSQL/JPA, Kafka y otros detalles técnicos. No significa que cada carpeta sea una aplicación independiente.
 
 **Decisión de estructura:** un paquete raíz por capa — `presentation/`, `business/`, `domain/`, `infrastructure/` — con las clases agrupadas por responsabilidad. Las interfaces de `domain/repository` describen qué datos necesita el negocio, sin depender de Spring. En `infrastructure/persistence/jpa/repository` quedan solo interfaces Spring Data JPA; `adapter` implementa los contratos del dominio con ellas y convierte entidades JPA a modelos de dominio, de modo que el negocio no importa clases JPA. Se guardan los datos propios de M3 y las referencias necesarias a estudiante y recurso; no se duplica la ficha maestra de otros módulos (la copia local de reservas guarda solo lo que M2 informa para decidir check-outs e inasistencias).
 

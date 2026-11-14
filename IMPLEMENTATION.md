@@ -4,7 +4,7 @@ Implementación local de control de uso, sanciones y analítica según las espec
 
 ## Stack
 
-Java 21, Spring Boot 4.1.2, Spring MVC, Spring Data JPA, Spring Security/JWT, Spring Kafka y Flyway. Frontend React 19.3 con Vite 8.3. Datos MySQL 8.4 y broker Kafka 4.3.1 en desarrollo.
+Java 21, Spring Boot 4.1.2, Spring MVC, Spring Data JPA, Spring Security/JWT, Spring Kafka y Flyway. Frontend React 19.3 con Vite 8.3. Datos PostgreSQL en Supabase y broker Kafka 4.3.1 en desarrollo.
 
 ## Desarrollo
 
@@ -16,7 +16,7 @@ Las cuentas demo solo son para desarrollo local. En producción usa un emisor in
 
 ## Requisitos de integración
 
-M3 no llama a M1/M2 por REST. Publica los eventos de check-out, daño e inasistencia mediante outbox de MySQL y consume reservas, acuses, pérdidas y estados de recurso por Kafka. Los consumidores deduplican por eventId. Los contratos marcados por acordar en el repositorio se mantienen aislados en integration para poder ajustar payloads sin alterar los casos de uso.
+M3 no llama a M1/M2 por REST. Publica los eventos de check-out, daño e inasistencia mediante outbox de PostgreSQL y consume reservas, acuses, pérdidas y estados de recurso por Kafka. Los consumidores deduplican por eventId. Los contratos marcados por acordar en el repositorio se mantienen aislados en integration para poder ajustar payloads sin alterar los casos de uso.
 
 La carga inicial de reservas de demostración se controla con M3_DEMO_SEED. Desactívala en cualquier entorno conectado a otros módulos.
 
